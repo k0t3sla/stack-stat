@@ -1,10 +1,9 @@
 (ns stack-stat.core
   (:require [clojure.core.async :as a]
             [org.httpkit.client :as client]
-            [clojure.pprint :as pprint]
             [cheshire.core :as cheshire] 
             [compojure.core :refer [defroutes GET]]
-            [compojure.route :refer [files not-found]]
+            [compojure.route :refer [not-found]]
             [hiccup.page :as hiccup]
             [stack-stat.aleph :as al]
             [stack-stat.common :refer [parse-tags format-tag-data]]
@@ -67,16 +66,8 @@
 
 ;; serv
 
-(defn home [_]
-  (hiccup/html5
-   [:head (hiccup/include-css "styles.css")]
-   [:div.content
-    [:h2 "HOME"]]))
-
-(defroutes routes
-  (GET "/" [] home)
+(defroutes routes 
   (GET "/search" [] app)
-  (files "/static/")
   (not-found (hiccup/html5 [:h2 "page not found"])))
 
 (defonce server (atom nil))

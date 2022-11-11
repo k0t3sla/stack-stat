@@ -5,7 +5,7 @@
              [manifold.executor :as e]
              [clojure.walk :as walk]
              [compojure.core :refer [defroutes GET]]
-             [compojure.route :refer [files not-found]]
+             [compojure.route :refer [not-found]]
              [hiccup.page :as hiccup]
              [cheshire.core :as cheshire]
              [clj-commons.byte-streams :as bs])
@@ -68,14 +68,11 @@
 
 (defn home [_]
   (hiccup/html5
-   [:head (hiccup/include-css "/static/styles.css")]
    [:div.content
     [:h2 "HOME"]]))
 
 (defroutes routes
-  (GET "/" [] home)
   (GET "/search" [] app)
-  (files "/static/")
   (not-found (hiccup/html5 [:h2 "page not found"])))
 
 (defn start-server []
