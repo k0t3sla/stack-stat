@@ -2,6 +2,7 @@
    (:require [aleph.http :as http]
              [aleph.http.params :refer [parse-params]]
              [manifold.deferred :as d]
+             [manifold.executor :as e]
              [clojure.walk :as walk]
              [clojure.pprint :as pprint]
              [cheshire.core :as cheshire]
@@ -10,8 +11,6 @@
   (:gen-class))
 
 ;; недоделаная попытка реализации на aleph
-
-(def raw-stream-connection-pool (http/connection-pool {:connection-options {:connections-per-host 4 :raw-stream? true}}))
 
 (defn parse-json-input-stream  
   "преобразования входящего потока, aleph не умеет в gzip"
@@ -22,6 +21,32 @@
       BufferedReader.
       cheshire/parse-stream
       walk/keywordize-keys))
+
+(def threads (e/fixed-thread-executor 4))
+
+(defn api-call!
+  [tag]
+  (-> @(http/get "https://api.stackexchange.com/2.2/search"
+                         {:query-params {:pagesize 100
+                                         :order "desc"
+                                         :sort "creation"
+                                         :tagged tag
+                                         :site "stackoverflow"}})
+              :body
+              bs/to-input-stream
+              parse-json-input-stream))
+
+(defn manifold-api-call
+  [ex x]
+  (let [d (d/deferred ex)
+        c (d/chain d #(future (api-call! %)))]
+    (d/success! d x)
+    c))
+
+(def out
+  (apply d/zip (mapv (partial manifold-api-call threads) ["clojure" "python"])))
+
+
 
 (defn is-answered 
   "получаем количество отвеченных вопросов"
@@ -47,8 +72,7 @@
                                          :order "desc"
                                          :sort "creation"
                                          :tagged "clojure"
-                                         :site "stackoverflow"}
-                          :pool raw-stream-connection-pool})
+                                         :site "stackoverflow"}})
               :body
               bs/to-input-stream
               parse-json-input-stream))
