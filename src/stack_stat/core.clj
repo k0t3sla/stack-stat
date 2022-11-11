@@ -2,32 +2,14 @@
   (:require [clojure.core.async :as a]
             [org.httpkit.client :as client]
             [clojure.pprint :as pprint]
-            [cheshire.core :as cheshire]
-            [clojure.walk :as walk]
-            [ring.util.codec :refer [form-decode]]
+            [cheshire.core :as cheshire] 
             [compojure.core :refer [defroutes GET]]
             [compojure.route :refer [files not-found]]
             [hiccup.page :as hiccup]
+            [stack-stat.aleph :as al]
+            [stack-stat.common :refer [parse-tags format-tag-data]]
             [org.httpkit.server :as http])
   (:gen-class))
-
-(defn is-answered 
-  "получаем количество отвеченных вопросов"
-  [tag]
-  (->> tag
-       :items
-       (map :is_answered)
-       (filter true?)
-       count))
-
-(defn total 
-  "получаем суммарное колличество тегов"
-  [tag]
-  (->> tag
-       :items
-       (map :tags)
-       (map count)
-       (reduce +)))
 
 (defn seq-of-chanels 
   "Создает ленивую последовательность из канала"
@@ -49,22 +31,6 @@
     (a/onto-chan! in-c coll)
     (a/pipeline-async p out-c async-function in-c)
     (seq-of-chanels out-c)))
-
-(defn parse-tags 
-  "парсим параметры запроса"
-  [params]
-  (let [tags (->> (form-decode params)
-                  walk/keywordize-keys)]
-    (if (string? (:tag tags))
-      [(:tag tags)]
-      (:tag tags))))
-
-(defn format-tag-data 
-  "форматируем для корректного json на выходе"
-  [tag body] 
-  (let [parsed-data (walk/keywordize-keys (cheshire/parse-string body))]
-    {(keyword tag) {:total (total (walk/keywordize-keys parsed-data))
-                    :answered (is-answered (walk/keywordize-keys parsed-data))}}))
 
 (defn make-async-reqest 
   "Делаем запросы к апи, форматируем и скидывем в канал"
@@ -88,16 +54,15 @@
   (let [qs (:query-string req)
         tags (parse-tags qs)
         treads 2
-        reqest (when-not (nil? tags) (request-stackoverflow tags treads))
-        formated-output (cheshire/generate-string
-                         reqest
-                         {:pretty true})]
+        reqest (when-not (nil? tags) (request-stackoverflow tags treads))]
     (if (nil? tags)
       {:status 400
        :body "Не верный запрос"
        :headers {}}
       {:status 200
-       :body formated-output
+       :body (cheshire/generate-string
+              reqest
+              {:pretty true})
        :headers {}})))
 
 ;; serv
@@ -124,12 +89,13 @@
     (reset! server nil)))
 
 (defn start-server []
+  (println "starting http.kit server http://localhost:8080/")
   (reset! server (http/run-server #'routes {:port 8080})))
 
 (defn -main
   []
-  (println "starting http.kit server http://localhost:8080/")
-  (start-server)) 
+  (start-server)
+  (al/start-server)) 
 
 (comment
   (start-server) 
