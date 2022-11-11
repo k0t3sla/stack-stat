@@ -66,11 +66,6 @@
               {:pretty true})
        :headers {}})))
 
-(defn home [_]
-  (hiccup/html5
-   [:div.content
-    [:h2 "HOME"]]))
-
 (defroutes routes
   (GET "/search" [] app)
   (not-found (hiccup/html5 [:h2 "page not found"])))
