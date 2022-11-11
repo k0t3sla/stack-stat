@@ -9,9 +9,13 @@
   (:import java.io.BufferedReader java.io.InputStreamReader java.util.zip.GZIPInputStream)
   (:gen-class))
 
+;; недоделаная попытка реализации на aleph
+
 (def raw-stream-connection-pool (http/connection-pool {:connection-options {:connections-per-host 4 :raw-stream? true}}))
 
-(defn parse-json-input-stream [stream]
+(defn parse-json-input-stream  
+  "преобразования входящего потока, aleph не умеет в gzip"
+  [stream] 
   (-> stream
       GZIPInputStream.
       InputStreamReader.
@@ -19,19 +23,24 @@
       cheshire/parse-stream
       walk/keywordize-keys))
 
-(defn is-answered [tag]
+(defn is-answered 
+  "получаем количество отвеченных вопросов"
+  [tag]
   (->> tag
-     :items
-     (map :is_answered)
-     (filter true?)
-     count))
+       :items
+       (map :is_answered)
+       (filter true?)
+       count))
 
-(defn total [tag]
+(defn total 
+  "получаем суммарное колличество тегов"
+  [tag]
   (->> tag
-     :items
-     (map :tags)
-     (map count)
-     (reduce +)))
+       :items
+       (map :tags)
+       (map count)
+       (reduce +)))
+
 
 (def data (-> @(http/get "https://api.stackexchange.com/2.2/search"
                          {:query-params {:pagesize 100
@@ -56,7 +65,7 @@
 (defn start-server []
   (reset! server
           (http/start-server (fn [req] (app req))
-                              {:port 8080})))
+                              {:port 8081})))
 
 (defn stop-server []
   (when-some [s @server]
@@ -83,4 +92,5 @@
 
 (defn start-aleph
   []
+  (println "Starting aleph server at http://localhost:8081/")
   #_(start-server))
