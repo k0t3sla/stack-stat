@@ -1,11 +1,11 @@
 (ns stack-stat.aleph
    (:require [aleph.http :as http]
-            [aleph.http.params :refer [parse-params]]
-            [manifold.deferred :as d]
-            [clojure.walk :as walk]
-            [clojure.pprint :as pprint]
-            [cheshire.core :as cheshire]
-            [clj-commons.byte-streams :as bs])
+             [aleph.http.params :refer [parse-params]]
+             [manifold.deferred :as d]
+             [clojure.walk :as walk]
+             [clojure.pprint :as pprint]
+             [cheshire.core :as cheshire]
+             [clj-commons.byte-streams :as bs])
   (:import java.io.BufferedReader java.io.InputStreamReader java.util.zip.GZIPInputStream)
   (:gen-class))
 
@@ -44,18 +44,6 @@
               bs/to-input-stream
               parse-json-input-stream))
 
-
-
-(is-answered data)
-
-@(d/chain
-   (http/get "http://localhost:10000/numbers"
-     {:query-params {:count 10}
-      :pool raw-stream-connection-pool})
-   :body
-   #(s/map bs/to-byte-array %)
-   #(s/reduce conj [] %)
-   bs/to-string)
 
 (defonce server (atom nil))
 

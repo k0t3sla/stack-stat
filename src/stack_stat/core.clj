@@ -4,6 +4,7 @@
             [clojure.pprint :as pprint]
             [cheshire.core :as cheshire]
             [clojure.walk :as walk]
+            [ring.util.codec :refer [form-decode]]
             [org.httpkit.server :as http])
   (:gen-class))
 
@@ -29,64 +30,70 @@
       (cons fst (seq-of-chanels c))))))
 
 (defn map-pipeline-async
-  ([async-function p coll]
+  [async-function p coll]
    (let [in-c (a/chan p)
          out-c (a/chan p)]
      (a/onto-chan! in-c coll)
      (a/pipeline-async p out-c async-function in-c)
-     (seq-of-chanels out-c))))
+     (seq-of-chanels out-c)))
 
-(defonce server (atom nil))
+(defn parse-tags [params]
+  (let [tags (->> (form-decode params)
+                  walk/keywordize-keys)]
+    (cond
+      (string? (:tag tags)) {:tag (:tag tags)}
+      (vector? (:tag tags)) (vec (for [tag (:tag tags)]
+                                   {:tag tag}))
+      :else nil)))
 
-(defn app [req]
-  (let [qs (:query-string req)]
-    {:status 200
-     :body (with-out-str (pprint/pprint qs))
-     :headers {}}))
-
-(defn start-server []
-  (reset! server
-          (http/run-server (fn [req] (app req))
-                           {:port 8080})))
-
-(defn stop-server []
-  (when-some [s @server]
-    (http/server-status s)
-    (reset! server nil)))
-
-
-(def tags 
-  [{:tag "clojure"}
-   {:tag "python"}])
-
-(defn format-data [page body]
+(defn format-tag-data [page body]
   (let [parsed-data (walk/keywordize-keys (cheshire/parse-string body))]
     {(:tag page) {:total (total (walk/keywordize-keys parsed-data))
                   :answered (is-answered (walk/keywordize-keys parsed-data))}}))
 
 
-(map-pipeline-async
- (fn [{:keys [tag] :as page} c]
-   (client/get "https://api.stackexchange.com/2.2/search"
-             {:query-params {:pagesize 100
-                             :order "desc"
-                             :sort "creation"
-                             :tagged tag
-                             :site "stackoverflow"}}
-             (fn [{:keys [body]}]
-               (when (string? body)
-                 (a/>!! c (format-data page body)))
-               (a/close! c))))
- 2 tags)
+(defn request-stackoverflow [tags treads]
+  (map-pipeline-async
+   (fn [{:keys [tag] :as page} c]
+     (client/get "https://api.stackexchange.com/2.2/search"
+                 {:query-params {:pagesize 100
+                                 :order "desc"
+                                 :sort "creation"
+                                 :tagged tag
+                                 :site "stackoverflow"}}
+                 (fn [{:keys [body]}]
+                   (when (string? body)
+                     (a/>!! c (format-tag-data page body)))
+                   (a/close! c))))
+   treads tags))
+  
+(defn app [req]
+  (let [qs (:query-string req)
+        tags (parse-tags qs)
+        treads 2
+        request-stackoverflow (request-stackoverflow tags treads)
+        formated-output (cheshire/generate-string
+                         (reduce into {} request-stackoverflow)
+                         {:pretty true})]
+    {:status 200
+     :body (if (nil? tags)
+             "Не верный запрос"
+             formated-output)
+     :headers {}}))
 
 
-(comment
-
-  (start-server)
-
-  (stop-server))
-
+(defn start-server []
+  (println "starting httpkit server http://localhost:8080/")
+  (http/run-server
+   (fn [req] (app req))
+   {:port 8080}))
 
 (defn -main
   []
-  #_(start-server))
+  (start-server))
+
+
+(comment 
+  (start-server)
+  )
+  

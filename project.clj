@@ -5,6 +5,7 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.10.3"]
                  [spootnik/aleph-params "0.1.5"]
+                 [ring/ring-codec "1.2.0"]
                  [cheshire "5.11.0"]
                  [http-kit "2.5.0"]
                  [org.clojure/core.async "1.6.673"]
