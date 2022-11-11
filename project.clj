@@ -8,6 +8,8 @@
                  [ring/ring-codec "1.2.0"]
                  [cheshire "5.11.0"]
                  [http-kit "2.5.0"]
+                 [compojure "1.7.0"]
+                 [hiccup "1.0.5"]
                  [org.clojure/core.async "1.6.673"]
                  [aleph "0.5.0"]]
   :main ^:skip-aot stack-stat.core

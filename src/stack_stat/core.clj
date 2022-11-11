@@ -5,6 +5,9 @@
             [cheshire.core :as cheshire]
             [clojure.walk :as walk]
             [ring.util.codec :refer [form-decode]]
+            [compojure.core :refer [defroutes GET]]
+            [compojure.route :refer [files not-found]]
+            [hiccup.page :as hiccup]
             [org.httpkit.server :as http])
   (:gen-class))
 
@@ -47,7 +50,7 @@
 (defn format-tag-data [tag body]
   (let [parsed-data (walk/keywordize-keys (cheshire/parse-string body))]
     {(keyword tag) {:total (total (walk/keywordize-keys parsed-data))
-                     :answered (is-answered (walk/keywordize-keys parsed-data))}}))
+                    :answered (is-answered (walk/keywordize-keys parsed-data))}}))
 
 (defn make-async-reqest [tag c]
   (client/get
@@ -81,18 +84,38 @@
        :body formated-output
        :headers {}})))
 
+;; serv
+
+(defn home [req]
+  (hiccup/html5
+   [:head (hiccup/include-css "styles.css")]
+   [:div.content
+    [:h2 "HOME"]]))
+
+(defroutes routes
+  (GET "/" [] home)
+  (GET "/search" [] app)
+  (files "/static/")
+  (not-found (hiccup/html5 [:h2 :sty "page not found"])))
+
+(defonce server (atom nil))
+
+(defn stop-server []
+  (when-not (nil? @server)
+    ;; graceful shutdown: wait 100ms for existing requests to be finished
+    ;; :timeout is optional, when no timeout, stop immediately
+    (@server :timeout 100)
+    (reset! server nil)))
 
 (defn start-server []
-  (println "starting httpkit server http://localhost:8080/")
-  (http/run-server
-   (fn [req] (app req))
-   {:port 8080}))
+  (reset! server (http/run-server #'routes {:port 8080})))
 
 (defn -main
   []
-  (start-server))
-
+  (println "starting http.kit server http://localhost:8080/")
+  (start-server)) 
 
 (comment
   (start-server) 
+  (stop-server)
   )
