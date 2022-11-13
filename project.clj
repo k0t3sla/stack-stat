@@ -15,4 +15,5 @@
   :main ^:skip-aot stack-stat.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all
-                       :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
+                       :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}
+             :test {:dependencies [[clj-http "3.12.3"]]}})
