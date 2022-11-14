@@ -8,7 +8,8 @@
              [compojure.route :refer [not-found]]
              [hiccup.page :as hiccup]
              [cheshire.core :as cheshire]
-             [clj-commons.byte-streams :as bs])
+             [clj-commons.byte-streams :as bs]
+             [clojure.string :as string])
   (:import java.io.BufferedReader java.io.InputStreamReader java.util.zip.GZIPInputStream)
   (:gen-class))
 
@@ -51,7 +52,7 @@
 
 (defn app [req]
   (let [qs (:query-string req)
-        tags  (if (not-empty qs)
+        tags (if (not-empty qs)
                 (parse-tags qs)
                 nil)
         treads (e/fixed-thread-executor 4)

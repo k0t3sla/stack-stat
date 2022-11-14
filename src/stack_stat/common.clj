@@ -1,6 +1,7 @@
 (ns stack-stat.common
   (:require [ring.util.codec :refer [form-decode]]
             [cheshire.core :as cheshire]
+            [clojure.string :as string]
             [clojure.walk :as walk]))
 
 (defn is-answered 
@@ -22,13 +23,16 @@
        (reduce +)))
 
 (defn parse-tags 
-  "парсим параметры запроса"
+  "парсим параметры запроса
+   и фильтруем чтобы не было пустых строк"
   [params]
-  (let [tags (->> (form-decode params)
-                  walk/keywordize-keys)]
-    (if (string? (:tag tags))
-      [(:tag tags)]
-      (:tag tags))))
+  (let [decoded (->> (form-decode params)
+                    walk/keywordize-keys)
+        tags (if (string? (:tag decoded))
+               [(:tag decoded)]
+               (:tag decoded)) 
+        not-blank (filterv (complement string/blank?) tags)]
+    not-blank))
 
 (defn format-tag-data 
   "форматируем для корректного json на выходе"

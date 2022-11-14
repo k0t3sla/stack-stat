@@ -51,7 +51,9 @@
 
 (defn app [req]
   (let [qs (:query-string req)
-        tags (parse-tags qs)
+        tags (if (not-empty qs)
+                (parse-tags qs)
+                nil)
         treads 2
         reqest (when-not (nil? tags) (request-stackoverflow tags treads))]
     (if (nil? tags)
