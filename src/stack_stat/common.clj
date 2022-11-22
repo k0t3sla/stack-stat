@@ -1,6 +1,5 @@
 (ns stack-stat.common
   (:require [ring.util.codec :refer [form-decode]]
-            [cheshire.core :as cheshire]
             [clojure.string :as string]
             [clojure.walk :as walk]))
 

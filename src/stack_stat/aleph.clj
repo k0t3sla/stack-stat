@@ -7,8 +7,7 @@
              [compojure.route :refer [not-found]]
              [hiccup.page :as hiccup]
              [cheshire.core :as cheshire]
-             [clj-commons.byte-streams :as bs]
-             [clojure.string :as string])
+             [clj-commons.byte-streams :as bs])
   (:import java.io.BufferedReader java.io.InputStreamReader java.util.zip.GZIPInputStream)
   (:gen-class))
 
