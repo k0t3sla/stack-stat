@@ -1,9 +1,8 @@
 (ns stack-stat.aleph
    (:require [aleph.http :as http]
-             [stack-stat.common :refer [parse-tags total is-answered]]
+             [stack-stat.common :refer [parse-tags get-tag-stat]]
              [manifold.deferred :as d]
              [manifold.executor :as e]
-             [clojure.walk :as walk]
              [compojure.core :refer [defroutes GET]]
              [compojure.route :refer [not-found]]
              [hiccup.page :as hiccup]
@@ -15,15 +14,13 @@
 
 (defn parse-json-input-stream  
   "преобразования входящего потока, aleph не умеет в gzip"
-  [tag stream] 
+  [stream] 
   (let [parsed-data (-> stream
                         GZIPInputStream.
                         InputStreamReader.
                         BufferedReader.
-                        cheshire/parse-stream
-                        walk/keywordize-keys)]
-    {(keyword tag) {:total (total (walk/keywordize-keys parsed-data))
-                    :answered (is-answered (walk/keywordize-keys parsed-data))}}))
+                        cheshire/parse-stream)]
+    parsed-data))
 
 (defn api-call!
   [tag]
@@ -35,7 +32,7 @@
                                                     :site "stackoverflow"}})
                          :body
                          bs/to-input-stream)]
-    (parse-json-input-stream tag input-stream)))
+    {tag (get-tag-stat (parse-json-input-stream input-stream))}))
 
 (defn manifold-api-call
   [ex x]
@@ -60,12 +57,12 @@
     (if (nil? tags)
       {:status 400
        :body "Не верный запрос"
-       :headers {}}
+       :headers {:content-type "json"}}
       {:status 200
        :body (cheshire/generate-string
               @reqest
               {:pretty true})
-       :headers {}})))
+       :headers {:content-type "json"}})))
 
 (defroutes routes
   (GET "/search" [] app)

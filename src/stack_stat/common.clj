@@ -4,24 +4,6 @@
             [clojure.string :as string]
             [clojure.walk :as walk]))
 
-(defn is-answered 
-  "получаем количество отвеченных вопросов"
-  [tag]
-  (->> tag
-       :items
-       (map :is_answered)
-       (filter true?)
-       count))
-
-(defn total 
-  "получаем суммарное колличество тегов"
-  [tag]
-  (->> tag
-       :items
-       (map :tags)
-       (map count)
-       (reduce +)))
-
 (defn parse-tags 
   "парсим параметры запроса
    и фильтруем чтобы не было пустых строк"
@@ -34,9 +16,20 @@
         not-blank (filterv (complement string/blank?) tags)]
     not-blank))
 
-(defn format-tag-data 
-  "форматируем для корректного json на выходе"
-  [tag body] 
-  (let [parsed-data (walk/keywordize-keys (cheshire/parse-string body))]
-    {(keyword tag) {:total (total (walk/keywordize-keys parsed-data))
-                    :answered (is-answered (walk/keywordize-keys parsed-data))}}))
+(defn check-answerd [tag]
+  (if
+   (true? ^boolean (get tag "is_answered"))
+    1
+    0))
+
+(defn get-tag-stat [input]
+  (loop [xs (get input "items")
+         answerd 0
+         total 0]
+    (if xs
+      (let [x (first xs)]
+        (recur (next xs)
+               (+ answerd (check-answerd x))
+               (+ total (count (get x "tags")))))
+      {:total total
+       :answerd answerd})))

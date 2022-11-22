@@ -6,7 +6,7 @@
             [compojure.route :refer [not-found]]
             [hiccup.page :as hiccup]
             [stack-stat.aleph :as al]
-            [stack-stat.common :refer [parse-tags format-tag-data]]
+            [stack-stat.common :refer [parse-tags get-tag-stat]]
             [org.httpkit.server :as http])
   (:gen-class))
 
@@ -43,7 +43,7 @@
                    :site "stackoverflow"}}
    (fn [{:keys [body]}]
      (when (string? body)
-       (a/>!! c (format-tag-data tag body)))
+       (a/>!! c {tag (get-tag-stat (cheshire/parse-string body))}))
      (a/close! c))))
 
 (defn request-stackoverflow [tags treads]
@@ -59,12 +59,12 @@
     (if (nil? tags)
       {:status 400
        :body "Не верный запрос"
-       :headers {}}
+       :headers {"Content-Type" "json"}}
       {:status 200
        :body (cheshire/generate-string
               reqest
               {:pretty true})
-       :headers {}})))
+       :headers {"Content-Type" "json"}})))
 
 ;; serv
 
